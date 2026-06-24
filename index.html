@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Session Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+        <div class="logo-title">
+          <span class="dot"></span>
+          Focus Session Tracker
+        </div>
+        <div class="logo-sub">
+          Immediate Progress Review · based on The Confident Mind
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-accent" onclick="downloadPDF()">
+          ⬇ Export PDF
+        </button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- ── LEFT: Form ── -->
+      <div class="left-panel">
+        <div class="section-label">Log a session</div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date <span class="required">*</span></label>
+            <input type="date" id="inp-date" />
+          </div>
+          <div class="form-group">
+            <label>Duration (hrs) <span class="required">*</span></label>
+            <input
+              type="number"
+              id="inp-duration"
+              min="0.25"
+              max="12"
+              step="0.25"
+              placeholder="1.5"
+            />
+          </div>
+
+          <div class="form-group full">
+            <label
+              >Rating <span class="required">*</span> &nbsp;<span
+                style="color: var(--text3); font-weight: 400; font-size: 11px"
+                >(7 = solid · 9–10 = rare flow state)</span
+              ></label
+            >
+            <div class="star-row" id="star-row">
+              <!-- rendered by JS -->
+            </div>
+            <input type="hidden" id="inp-rating" value="" />
+          </div>
+
+          <div class="form-group full">
+            <label
+              >IPR — What did you actually accomplish?
+              <span class="required">*</span></label
+            >
+            <textarea
+              id="inp-ipr"
+              placeholder="Be concrete: pages read, reps done, decisions made, mindset shifts. No fluff."
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Dominant effort type <span class="required">*</span></label>
+            <div class="effort-tags" id="effort-tags">
+              <div
+                class="effort-tag"
+                data-value="🧠 Cognitive"
+                onclick="selectEffort(this)"
+              >
+                🧠 Cognitive
+              </div>
+              <div
+                class="effort-tag"
+                data-value="❤️ Emotional"
+                onclick="selectEffort(this)"
+              >
+                ❤️ Emotional
+              </div>
+              <div
+                class="effort-tag"
+                data-value="⚙️ Mechanical"
+                onclick="selectEffort(this)"
+              >
+                ⚙️ Mechanical
+              </div>
+              <div
+                class="effort-tag"
+                data-value="♟️ Strategic"
+                onclick="selectEffort(this)"
+              >
+                ♟️ Strategic
+              </div>
+            </div>
+            <input type="hidden" id="inp-effort" value="" />
+          </div>
+
+          <div class="form-group full">
+            <label
+              >Micro-tweak for next session
+              <span
+                style="color: var(--text3); font-weight: 400; font-size: 11px"
+                >(one small, specific thing)</span
+              ></label
+            >
+            <textarea
+              id="inp-tweak"
+              placeholder="E.g. Start with a 5-min mind-dump before reading."
+              rows="2"
+            ></textarea>
+          </div>
+        </div>
+
+        <button class="add-btn" onclick="addSession()">+ Add session</button>
+        <button class="reset-btn" onclick="resetForm()">↺ Reset form</button>
+
+        <div class="divider"></div>
+        <div class="section-label">About IPR</div>
+        <p style="font-size: 13px; color: var(--text2); line-height: 1.7">
+          <strong style="color: var(--text); font-weight: 500"
+            >Immediate Progress Review</strong
+          >
+          is a post-session scan of what actually moved forward — not time
+          spent, but real output. From <em>The Confident Mind</em>. Inflated
+          scores hide patterns; a real 6 tells you more than a fake 9.
+        </p>
+      </div>
+
+      <!-- ── RIGHT: Summary + Log ── -->
+      <div class="right-panel" id="right-panel">
+        <div>
+          <div class="section-label">Today at a glance</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Sessions</div>
+              <div class="stat-value" id="stat-sessions">0</div>
+              <div class="stat-sub">today</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Hours</div>
+              <div class="stat-value" id="stat-hours">0</div>
+              <div class="stat-sub">focused today</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Avg rating</div>
+              <div class="stat-value" id="stat-avg">—</div>
+              <div class="stat-sub">out of 10</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Best session</div>
+              <div class="stat-value" id="stat-best">—</div>
+              <div class="stat-sub">today's peak</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Effort breakdown — all time</div>
+          <div class="effort-breakdown" id="effort-breakdown">
+            <div class="effort-row">
+              <div class="effort-label">🧠 Cognitive</div>
+              <div class="bar-track">
+                <div
+                  class="bar-fill bar-cognitive"
+                  id="bar-cognitive"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="effort-count" id="cnt-cognitive">0</div>
+            </div>
+            <div class="effort-row">
+              <div class="effort-label">❤️ Emotional</div>
+              <div class="bar-track">
+                <div
+                  class="bar-fill bar-emotional"
+                  id="bar-emotional"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="effort-count" id="cnt-emotional">0</div>
+            </div>
+            <div class="effort-row">
+              <div class="effort-label">⚙️ Mechanical</div>
+              <div class="bar-track">
+                <div
+                  class="bar-fill bar-mechanical"
+                  id="bar-mechanical"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="effort-count" id="cnt-mechanical">0</div>
+            </div>
+            <div class="effort-row">
+              <div class="effort-label">♟️ Strategic</div>
+              <div class="bar-track">
+                <div
+                  class="bar-fill bar-strategic"
+                  id="bar-strategic"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="effort-count" id="cnt-strategic">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1">
+          <div class="section-label">Session log</div>
+          <div id="sessions-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="index.js"></script>
+  </body>
+</html>
